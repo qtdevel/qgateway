@@ -60,6 +60,7 @@ class Window : public QDialog
 
 public:
               Window();
+             ~Window();
 
         void  setVisible(bool visible);
 
@@ -111,6 +112,7 @@ private:
         void  switchTo(QString gw);
         void  createActions();
         void  createTrayIcon();
+        void  writeGateway();
 
                   QTabWidget *tabs;
                    QLineEdit *gwEdit;
@@ -144,6 +146,7 @@ private:
                    QCheckBox *runOnStartup;
                    QCheckBox *showBalloons;
                    QCheckBox *askOnQuit;
+                   QCheckBox *writeGwOnExit;
                         bool  gwListChanged;
                       QLabel *gwInfo;
                         bool  startupChanged;

@@ -115,6 +115,35 @@ Window::Window()
     setWindowIcon(QIcon(":/images/computer-network.png"));
 }
 //------------------------------------------------------------------------------------------------
+Window::~Window()
+{
+    if (writeGwOnExit->isChecked())
+        writeGateway();
+}
+//------------------------------------------------------------------------------------------------
+void Window::writeGateway()
+{
+#ifdef Q_OS_WIN
+    if (!currentGw.isEmpty())
+    {
+        QProcess *route = new QProcess(this);
+        QString program = "route";
+
+        QStringList arguments;
+        arguments << "delete" << "0.0.0.0";
+        route->start(program, arguments);
+        route->waitForFinished();
+
+        arguments.clear();
+        arguments << "-p" << "add" << "0.0.0.0" << "mask" << "0.0.0.0" << currentGw;
+        route->start(program, arguments);
+        route->waitForFinished();
+
+        route->deleteLater();
+    }
+#endif
+}
+//------------------------------------------------------------------------------------------------
 void Window::createTabs()
 {
     tabs = new QTabWidget;
@@ -199,6 +228,10 @@ void Window::addOptionsTab()
     connect(askOnQuit, SIGNAL(stateChanged(int)),
             this, SLOT(checkboxChanged(int)));
     fl->addRow(tr("Ask on quit:"), askOnQuit);
+    writeGwOnExit = new QCheckBox;
+    connect(writeGwOnExit, SIGNAL(stateChanged(int)),
+            this, SLOT(checkboxChanged(int)));
+    fl->addRow(tr("Write gateway to registry on exit:"), writeGwOnExit);
     QVBoxLayout *vl = new QVBoxLayout;
     vl->addLayout(fl);
     vl->addSpacing(15);
@@ -233,6 +266,9 @@ void Window::readSettings()
 
     bval = settings.value(key + "AskOnQuit", QVariant(true)).toBool();
     askOnQuit->setChecked(bval);
+
+    bval = settings.value(key + "WriteGatewayOnExit", QVariant(false)).toBool();
+    writeGwOnExit->setChecked(bval);
 
     indexGateway = -1;
 
@@ -426,6 +462,7 @@ void Window::writeSettings()
         settings.setValue("RunOnStartup", runOnStartup->isChecked());
         settings.setValue("ShowBalloons", showBalloons->isChecked());
         settings.setValue("AskOnQuit", askOnQuit->isChecked());
+        settings.setValue("WriteGatewayOnExit", writeGwOnExit->isChecked());
         settings.setValue("PingHost", pingHost);
         settings.endGroup();
 
