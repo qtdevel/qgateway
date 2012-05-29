@@ -269,7 +269,7 @@ void Window::readSettings()
     bval = settings.value(key + "AskOnQuit", QVariant(true)).toBool();
     askOnQuit->setChecked(bval);
 
-    bval = settings.value(key + "WriteGatewayOnExit", QVariant(false)).toBool();
+    bval = settings.value(key + "WriteGatewayOnExit", QVariant(true)).toBool();
     writeGwOnExit->setChecked(bval);
 
     indexGateway = -1;
