@@ -231,7 +231,9 @@ void Window::addOptionsTab()
     writeGwOnExit = new QCheckBox;
     connect(writeGwOnExit, SIGNAL(stateChanged(int)),
             this, SLOT(checkboxChanged(int)));
+#ifdef Q_OS_WIN
     fl->addRow(tr("Write gateway to registry on exit:"), writeGwOnExit);
+#endif
     QVBoxLayout *vl = new QVBoxLayout;
     vl->addLayout(fl);
     vl->addSpacing(15);
