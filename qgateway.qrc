@@ -1,0 +1,17 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/">
+   <file>images/computer-exclamation.png</file>
+   <file>images/computer-network.png</file>
+   <file>images/computer-network-gray.png</file>
+   <file>images/arrow-circle-double.png</file>
+   <file>images/arrow-up.png</file>
+   <file>images/arrow-down.png</file>
+   <file>images/plus.png</file>
+   <file>images/minus.png</file>
+   <file>images/network-ip-local.png</file>
+   <file>images/wrench.png</file>
+   <file>images/door-open-out.png</file>
+   <file>images/tick.png</file>
+   <file>images/question-balloon.png</file>
+</qresource>
+</RCC>

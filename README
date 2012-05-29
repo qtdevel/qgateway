@@ -1,0 +1,5 @@
+QGateway is a program for switching a gateway.
+
+If you have two or more gateways for internet connection you probably have to switch
+between them to keep your connection online. It can be boring to do it manually.
+This program does this carefully for you :-)
