@@ -242,12 +242,13 @@ int ping(const char *pDest, unsigned int nTimeout)
     int bwrote;
     int next=1;
     int nTime=0;
-    char *pToken, *pTarget;
+    char *pToken;
+    char target[32];
     int nTargetLen;
 
     char *dest_ip;
-    char *icmp_d;
-    char *recvbuf;
+    char icmp_d[MAX_PACKET];
+    char recvbuf[MAX_PACKET];
     unsigned int addr=0;
     USHORT seq_no = 0;
 
@@ -256,16 +257,15 @@ int ping(const char *pDest, unsigned int nTimeout)
         return -1;
     }
 
+    memset(target, 0, sizeof(target));
     pToken=(char *)strstr(pDest, ":");
     if(pToken==NULL) {
         nTargetLen=strlen(pDest);
-        pTarget=(char*)malloc(nTargetLen+1); memset(pTarget, 0, nTargetLen+1);
-        strcpy(pTarget, pDest);
+        strcpy(target, pDest);
     }
     else {
         nTargetLen=pToken-pDest;
-        pTarget=(char*)malloc(nTargetLen+1); memset(pTarget, 0, nTargetLen+1);
-        strncpy(pTarget, pDest, nTargetLen);
+        strncpy(target, pDest, nTargetLen);
     }
 
 
@@ -285,9 +285,9 @@ int ping(const char *pDest, unsigned int nTimeout)
 
     memset(&dest,0,sizeof(dest));
 
-    hp = gethostbyname(pTarget);
+    hp = gethostbyname(target);
     if (!hp)
-        addr=inet_addr(pTarget);
+        addr=inet_addr(target);
     if ((!hp)  && (addr == INADDR_NONE) ) {
         ping_error("ping(), unable to resolve.");
         return -1;
@@ -305,15 +305,8 @@ int ping(const char *pDest, unsigned int nTimeout)
   
     datasize = DEF_PACKET_SIZE; datasize += sizeof(IcmpHeader);  
   
-    icmp_d = (char*) malloc(MAX_PACKET); memset(icmp_d, 0, MAX_PACKET);
-    recvbuf = (char*) malloc(MAX_PACKET);
-  
-    if (!icmp_d) {
-        ping_error("ping(), memory allocation failed.");
-        return -1;
-    }
-
-    memset(icmp_d,0,MAX_PACKET); fill_icmp_d(icmp_d,datasize);
+    memset(icmp_d, 0, MAX_PACKET);
+    fill_icmp_d(icmp_d,datasize);
 
     if (next>=0) {
         memset(recvbuf, 0, MAX_PACKET);
@@ -339,6 +332,8 @@ int ping(const char *pDest, unsigned int nTimeout)
 
     for (unsigned int to = 0; to < nTimeout; to += 1)
     {
+        if (GetTickCount()-nTime>nTimeout)
+            return -1;
         bread = recvfrom(sockRaw,recvbuf,MAX_PACKET,0,
                 (struct sockaddr*)&from, (socklen_t*)&fromlen);
         if (bread > 0)
