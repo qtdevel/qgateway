@@ -23,6 +23,11 @@
 #include "winsock2.h"
 #include "ws2tcpip.h"
 #include "windows.h"
+
+#ifdef HAVE_MS_PING
+#include "ms_ping.h"
+#endif
+
 #endif
 
 #include "window.h"
@@ -96,12 +101,26 @@ int main(int argc, char *argv[])
     }
 
     /* The WinSock DLL is acceptable. Proceed. */
+
+#ifdef HAVE_MS_PING
+    //	Initialize Icmp handle
+    initMsIcmp();
+#endif
+
 #endif
 
     Window window;
-    return app.exec();
+    int ret = app.exec();
 
 #ifdef Q_OS_WIN
+
+#ifdef HAVE_MS_PING
+    //	Close Icmp handle
+    shutdownMsIcmp();
+#endif
+
     WSACleanup();
 #endif
+
+    return ret;
 }

@@ -23,6 +23,10 @@
 #include "window.h"
 #include "ping.h"
 
+#ifdef HAVE_MS_PING
+#include "ms_ping.h"
+#endif
+
 const QString GOOGLE_DNS = "8.8.8.8";
 
 //
@@ -657,7 +661,15 @@ void Window::pingProc()
     info = tr("Current gateway: ") + "<b>" + currentGw + "</b>";
     info += ", ";
 
-    int res = ping(pingHost.toLatin1(), pingTimeout->value());
+    int res;
+#ifdef HAVE_MS_PING
+    if (canUseMsIcmp)
+        res = ms_ping(pingHost.toLatin1(), pingTimeout->value());
+    else
+        res = ping(pingHost.toLatin1(), pingTimeout->value());
+#else
+    res = ping(pingHost.toLatin1(), pingTimeout->value());
+#endif
     if (res <= 0)
     {
         if (!switchTimer->isActive() && canSwitch)
