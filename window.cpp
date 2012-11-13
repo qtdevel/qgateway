@@ -187,7 +187,7 @@ void Window::addOptionsTab()
     fl->addRow(tr("Switching method:"), switchType);
     fl->addRow(tr("IP address to ping:"), pingHostEdit);
     pingTimeout = new QSpinBox;
-    pingTimeout->setMinimum(50);
+    pingTimeout->setMinimum(1);
     pingTimeout->setMaximum(1000);
     pingTimeout->setSuffix(tr(" ms."));
     pingTimeout->setMaximumWidth(70);
@@ -257,10 +257,22 @@ void Window::readSettings()
 
     key = "Options/";
     val = settings.value(key + "ConnectionTimeout", QVariant(8)).toInt();
+    if (val < connTimeout->minimum())
+        val = connTimeout->minimum();
+    if (val > connTimeout->maximum())
+        val = connTimeout->maximum();
     connTimeout->setValue(val);
     val = settings.value(key + "PriorityTimeout", QVariant(10)).toInt();
+    if (val < prioTimeout->minimum())
+        val = prioTimeout->minimum();
+    if (val > prioTimeout->maximum())
+        val = prioTimeout->maximum();
     prioTimeout->setValue(val);
     val = settings.value(key + "PingTimeout", QVariant(800)).toInt();
+    if (val < pingTimeout->minimum())
+        val = pingTimeout->minimum();
+    if (val > pingTimeout->maximum())
+        val = pingTimeout->maximum();
     pingTimeout->setValue(val);
 
     bool bval;

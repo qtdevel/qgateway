@@ -139,7 +139,9 @@ int ms_ping(const char *pDest, unsigned int nTimeout)
 		return -1;
 
 	stDestAddr.s_addr = *(u_long *)achRepData;
-	int ms = *(u_long *) &(achRepData[8]);
+	u_long ms = *(u_long *) &(achRepData[8]);
+	if (ms > nTimeout)
+		return -1;
 	return ms;
 }
 
