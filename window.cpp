@@ -927,8 +927,8 @@ void Window::quitApp()
         if (button != QMessageBox::Ok)
             return;
     }
+    applySettings();
     writeSettings();
-    checkStartup();
     qApp->quit();
 }
 //------------------------------------------------------------------------------------------------
