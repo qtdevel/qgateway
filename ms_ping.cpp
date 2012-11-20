@@ -138,7 +138,6 @@ int ms_ping(const char *pDest, unsigned int nTimeout)
 	if (dwReplyCount <= 0)
 		return -1;
 
-	stDestAddr.s_addr = *(u_long *)achRepData;
 	u_long ms = *(u_long *) &(achRepData[8]);
 	if (ms > nTimeout)
 		return -1;
