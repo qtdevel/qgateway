@@ -434,6 +434,7 @@ void Window::applySwitchMode()
                 QListWidgetItem * item = gwList->item(index - 4);
                 if (item)
                     switchTo(item->text());
+                forceSwitchButton->setEnabled(false);
             } break;
     }
 }
