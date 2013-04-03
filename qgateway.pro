@@ -13,6 +13,5 @@ ms_ping {
     DEFINES += HAVE_MS_PING
     HEADERS += ms_ping.h
     SOURCES += ms_ping.cpp
-    win32:LIBS += -lIphlpapi
 }
 

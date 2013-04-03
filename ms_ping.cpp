@@ -3,21 +3,39 @@
 
 #include <winsock2.h>
 #include <Ipexport.h>
-#include <Icmpapi.h>
 #include <Iphlpapi.h>
+#include <Icmpapi.h>
 #include <stdio.h>
 
 #include "ms_ping.h"
 
-#define BUFSIZE     8192
-#define DEFAULT_LEN 32
-#define LOOPLIMIT   4
-#define TIMEOUT     5000
-#define DEFAULT_TTL 64
+#define BUFSIZE                      8192
+#define DEFAULT_LEN                  32
+#define DEFAULT_TTL                  64
+#define MAX_ICMP_ECHO_REPLY_COUNT    32
 
 HANDLE hICMP;
-char achReqData[BUFSIZE];
-char achRepData[sizeof(ICMP_ECHO_REPLY) + BUFSIZE];
+char achRequestData[BUFSIZE];
+char achReplyData[sizeof(ICMP_ECHO_REPLY) * MAX_ICMP_ECHO_REPLY_COUNT + BUFSIZE];
+
+HINSTANCE hIcmpLib;
+HINSTANCE hIphlpapiLib;
+typedef  HANDLE (WINAPI *PIcmpCreateFile)();
+typedef  BOOL   (WINAPI *PIcmpCloseHandle)(HANDLE icmpHandle);
+typedef  DWORD  (WINAPI *PIcmpSendEcho)(
+                                        HANDLE IcmpHandle,
+                                        IPAddr DestinationAddress,
+                                        LPVOID RequestData,
+                                        WORD RequestSize,
+                                        PIP_OPTION_INFORMATION RequestOptions,
+                                        LPVOID ReplyBuffer,
+                                        DWORD ReplySize,
+                                        DWORD Timeout
+                                      );
+
+PIcmpCreateFile pIcmpCreateFile;
+PIcmpCloseHandle pIcmpCloseHandle;
+PIcmpSendEcho pIcmpSendEcho;
 
 /* IP Flags - 3 bits
  *
@@ -30,12 +48,59 @@ char achRepData[sizeof(ICMP_ECHO_REPLY) + BUFSIZE];
 
 int initMsIcmp()
 {
-	/*
-	 * IcmpCreateFile() - Open the ping service
-	 */
-	hICMP = IcmpCreateFile();
+	//	Init variables
+	hIcmpLib = 0;
+	pIcmpCreateFile = 0;
+	pIcmpCloseHandle = 0;
+	pIcmpSendEcho = 0;
+	hICMP = 0;
+	hIphlpapiLib = 0;
+
+	hIphlpapiLib = LoadLibrary(TEXT("Iphlpapi.dll"));
+	if (hIphlpapiLib) {
+		//  IcmpCreateFile() - Opens the ping service
+		pIcmpCreateFile = (PIcmpCreateFile) GetProcAddress(hIphlpapiLib, "IcmpCreateFile");
+
+		//  IcmpCloseHandle() - Closes the ping service
+		pIcmpCloseHandle = (PIcmpCloseHandle) GetProcAddress(hIphlpapiLib, "IcmpCloseHandle");
+
+		//  IcmpSendEcho() - Sends an IPv4 ICMP echo request and returns any echo response replies
+		pIcmpSendEcho = (PIcmpSendEcho) GetProcAddress(hIphlpapiLib, "IcmpSendEcho");
+	}
+
+	if ((hIphlpapiLib == NULL) || (pIcmpCreateFile == NULL) ||
+		(pIcmpCloseHandle == NULL) || (pIcmpSendEcho == NULL)) {
+		if (hIphlpapiLib) {
+			FreeLibrary(hIphlpapiLib);
+			hIphlpapiLib = 0;
+		}
+		hIcmpLib = LoadLibrary(TEXT("Icmp.dll"));
+		if (hIcmpLib) {
+			//  IcmpCreateFile() - Opens the ping service
+			pIcmpCreateFile = (PIcmpCreateFile) GetProcAddress(hIcmpLib, "IcmpCreateFile");
+
+			//  IcmpCloseHandle() - Closes the ping service
+			pIcmpCloseHandle = (PIcmpCloseHandle) GetProcAddress(hIcmpLib, "IcmpCloseHandle");
+
+			//  IcmpSendEcho() - Sends an IPv4 ICMP echo request and returns any echo response replies
+			pIcmpSendEcho = (PIcmpSendEcho) GetProcAddress(hIcmpLib, "IcmpSendEcho");
+		}
+	}
+
+	if ((pIcmpCreateFile == NULL) || (pIcmpCloseHandle == NULL) || (pIcmpSendEcho == NULL)) {
+		if (hIcmpLib) {
+			FreeLibrary(hIcmpLib);
+			hIcmpLib = 0;
+			pIcmpCreateFile = 0;
+			pIcmpCloseHandle = 0;
+			pIcmpSendEcho = 0;
+			return -1;
+		}
+	}
+
+	hICMP = pIcmpCreateFile();
 	if (hICMP == INVALID_HANDLE_VALUE) {
-		printf ("IcmpCreateFile() failed, err: ");
+		printf ("IcmpCreateFile() failed\n");
 		return -1;
 	}
 
@@ -46,7 +111,7 @@ int initMsIcmp()
 	for (int j=0, i=32; j < DEFAULT_LEN; j++, i++) {
 		if (i>=126) 
 		i= 32;
-		achReqData[j] = i;
+		achRequestData[j] = i;
 	}
 
 	return 0;
@@ -59,7 +124,22 @@ bool canUseMsIcmp()
 
 BOOL shutdownMsIcmp()
 {
-	BOOL ret = IcmpCloseHandle(hICMP);
+	BOOL ret = FALSE;
+	if (pIcmpCloseHandle != NULL) {
+		ret = pIcmpCloseHandle(hICMP);
+		hICMP = 0;
+	}
+	if (hIphlpapiLib) {
+		FreeLibrary(hIphlpapiLib);
+		hIphlpapiLib = 0;
+	}
+	if (hIcmpLib) {
+		FreeLibrary(hIcmpLib);
+		hIcmpLib = 0;
+	}
+	pIcmpCreateFile = 0;
+	pIcmpCloseHandle = 0;
+	pIcmpSendEcho = 0;
 	hICMP = 0;
 	return ret;
 }
@@ -67,7 +147,12 @@ BOOL shutdownMsIcmp()
 int ms_ping(const char *pDest, unsigned int nTimeout)
 {
 	if (hICMP == 0) {
-		printf("ms_ping(): ICMP handle is NULL.");
+		printf("ms_ping(): ICMP handle is NULL.\n");
+		return -1;
+	}
+
+	if (pIcmpSendEcho == 0) {
+		printf("ms_ping(): IcmpSendEcho() function is not found in DLL.\n");
 		return -1;
 	}
 
@@ -76,7 +161,7 @@ int ms_ping(const char *pDest, unsigned int nTimeout)
 	IP_OPTION_INFORMATION stIPInfo, *lpstIPInfo;
 
 	if (pDest == NULL) {
-		printf("ms_ping(): *pDest is NULL.");
+		printf("ms_ping(): *pDest is NULL.\n");
 		return -1;
 	}
 
@@ -122,25 +207,32 @@ int ms_ping(const char *pDest, unsigned int nTimeout)
 	stIPInfo.OptionsSize = 0;
 	stIPInfo.OptionsData = NULL;
 
-
+	memset(achReplyData, 0, sizeof(achReplyData));
 	/*
 	 * IcmpSendEcho() - Send the ICMP Echo Request
 	 *                  and read the Reply
 	 */
-	DWORD dwReplyCount = IcmpSendEcho(hICMP, 
+	DWORD dwReplyCount = pIcmpSendEcho(hICMP, 
 										stDestAddr.s_addr,
-										achReqData,
+										achRequestData,
 										DEFAULT_LEN,
 										lpstIPInfo,
-										achRepData, 
-										sizeof(achRepData), 
+										achReplyData, 
+										sizeof(achReplyData), 
 										nTimeout);
 	if (dwReplyCount <= 0)
 		return -1;
 
-	u_long ms = *(u_long *) &(achRepData[8]);
+	int idx = (dwReplyCount - 1) * sizeof(ICMP_ECHO_REPLY);
+	PICMP_ECHO_REPLY pEchoReply = (PICMP_ECHO_REPLY)(achReplyData + idx);
+
+	u_long ms = pEchoReply->RoundTripTime;
 	if (ms > nTimeout)
 		return -1;
+
+	if (pEchoReply->Status != IP_SUCCESS)
+		return -1;
+
 	return ms;
 }
 

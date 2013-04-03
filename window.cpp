@@ -682,7 +682,7 @@ void Window::pingProc()
 #else
     res = ping(pingHost.toLatin1(), pingTimeout->value());
 #endif
-    if (res <= 0)
+    if (res < 0)
     {
         if (!switchTimer->isActive() && canSwitch)
             switchTimer->start(connTimeout->value() * 1000);
@@ -717,7 +717,11 @@ void Window::pingProc()
                 prioTimeoutValue = prioTimeout->value();
             }
         }
-        info += tr("ping:") + QString(" %1 ").arg(res);
+        info += tr("ping:");
+        if (res == 0)
+            info += tr(" less than 1 ");
+        else
+            info += QString(" %1 ").arg(res);
         info += tr("ms.");
     }
     gwInfo->setText(info);
