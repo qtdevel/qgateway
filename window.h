@@ -86,7 +86,7 @@ private slots:
         void  closeWanted();
         void  forceSwitch();
         void  startupChecked(int);
-        void  textEdited(const QString &);
+        void  pingHostEdited(const QString &);
         void  settingsChanged();
         void  spinChanged(int);
         void  checkboxChanged(int);

@@ -182,7 +182,7 @@ void Window::addOptionsTab()
     pingHostEdit = new QLineEdit(GOOGLE_DNS);
     pingHostEdit->setValidator(new IP4Validator(this));
     connect(pingHostEdit, SIGNAL(textEdited(const QString &)),
-            this, SLOT(textEdited(const QString &)));
+            this, SLOT(pingHostEdited(const QString &)));
     QFormLayout *fl = new QFormLayout;
     fl->addRow(tr("Switching method:"), switchType);
     fl->addRow(tr("IP address to ping:"), pingHostEdit);
@@ -456,13 +456,6 @@ void Window::forceSwitch()
 //------------------------------------------------------------------------------------------------
 void Window::applySettings()
 {
-    pingHost = pingHostEdit->text();
-    if (pingHost.isEmpty() || !isValidIP(pingHost))
-    {
-        pingHost = GOOGLE_DNS;
-        pingHostEdit->setText(GOOGLE_DNS);
-    }
-
     checkStartup();
 }
 //------------------------------------------------------------------------------------------------
@@ -672,6 +665,10 @@ void Window::pingProc()
     QString info;
     info = tr("Current gateway: ") + "<b>" + currentGw + "</b>";
     info += ", ";
+    info += tr("ping");
+    info += " (";
+    info += pingHost;
+    info += " ): ";
 
     int res;
 #ifdef HAVE_MS_PING
@@ -687,7 +684,7 @@ void Window::pingProc()
         if (!switchTimer->isActive() && canSwitch)
             switchTimer->start(connTimeout->value() * 1000);
         setInetStatus(imSwitching);
-        info += tr("no ping");
+        info += tr("no answer");
     }
     else
     {
@@ -717,7 +714,6 @@ void Window::pingProc()
                 prioTimeoutValue = prioTimeout->value();
             }
         }
-        info += tr("ping:");
         if (res == 0)
             info += tr(" less than 1 ");
         else
@@ -1005,8 +1001,10 @@ void Window::settingsChanged()
     settChanged = true;
 }
 //------------------------------------------------------------------------------------------------
-void Window::textEdited(const QString &)
+void Window::pingHostEdited(const QString & ipAddress)
 {
+    if (isValidIP(ipAddress))
+        pingHost = ipAddress;
     settingsChanged();
 }
 //------------------------------------------------------------------------------------------------
