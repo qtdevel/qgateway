@@ -669,7 +669,7 @@ void Window::pingProc()
     info += tr("ping");
     info += " (";
     info += pingHost;
-    info += " ): ";
+    info += "): ";
 
     int res;
 #ifdef HAVE_MS_PING
